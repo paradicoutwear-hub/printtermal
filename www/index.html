@@ -1113,7 +1113,7 @@ function updateDiagnostics(svcUuid, charUuid, wor) {
 }
 
 async function testPrintReal() {
-  if (!btCharacteristic) {
+  if (!btConnected) {
     toast('Printer belum terhubung. Tap Konek dulu.', 'error');
     return;
   }
@@ -1643,7 +1643,7 @@ function updatePrintBtn() {
    PRINT — REAL IMPLEMENTATION
 ══════════════════════════════════════════════════════════ */
 async function startPrint() {
-  if (!btCharacteristic) {
+  if (!btConnected) {
     // Offer to connect first
     toast('Printer belum terhubung. Konek dulu via tab Printer.', 'error', 3000);
     return;
