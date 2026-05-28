@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThermalPrint Studio</title>
+  <meta name="description" content="Cetak PDF ke printer thermal Bluetooth langsung dari HP. Tanpa kabel, tanpa instalasi, bisa offline." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0d1117" />
+
+  <!-- Load PDF.js from local lib for offline support -->
+  <script src="./lib/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = './lib/pdf.worker.min.js';
+  </script>
+
+  <style>
+    :root {
+      --bg:        #FFFFFF; --surface: #F5F5F5; --surface2: #EBEBEB;
+      --txt:       #111111; --txt-muted: #9CA3AF;
+      --accent:    #2563EB; --accent-bg: #EFF6FF;
+      --success:   #10B981; --error: #EF4444; --warning: #F59E0B;
+      --border:    #E5E7EB; --radius: 10px; --radius-lg: 16px;
+      --shadow:    0 1px 3px rgba(0,0,0,.08); --shadow-md: 0 4px 12px rgba(0,0,0,.10);
+      --trans:     150ms ease;
+    }
+    [data-theme="dark"] {
+      --bg:#0F0F0F; --surface:#1C1C1E; --surface2:#2C2C2E;
+      --txt:#F5F5F5; --txt-muted:#6B7280; --accent:#3B82F6; --accent-bg:#1E3A5F;
+      --success:#059669; --error:#DC2626; --warning:#D97706;
+      --border:#2C2C2E; --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 4px 12px rgba(0,0,0,.5);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{font-size:16px;}
+    body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100dvh;transition:background var(--trans),color var(--trans);-webkit-font-smoothing:antialiased;}
+    button{font-family:inherit;cursor:pointer;border:none;background:none;}
+    input,select,textarea{font-family:inherit;}
+
+    .app{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;}
+
+    /* Status Bar */
+    .status-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:500;font-family:'JetBrains Mono',monospace;position:sticky;top:0;z-index:100;}
+    .printer-status{display:flex;align-items:center;gap:7px;}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:var(--txt-muted);flex-shrink:0;transition:background .3s,box-shadow .3s;}
+    .status-dot.connected{background:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.2);}
+    .status-dot.error{background:var(--error);}
+    .status-label{color:var(--txt-muted);}
+    .status-label.connected{color:var(--txt);}
+    .status-bar-right{display:flex;align-items:center;gap:8px;}
+    .btn-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--txt-muted);transition:background var(--trans),color var(--trans);}
+    .btn-icon:hover{background:var(--surface2);color:var(--txt);}
+    .btn-icon svg{width:16px;height:16px;}
+
+    /* Nav */
+    .nav-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:45px;z-index:90;}
+    .nav-tab{flex:1;padding:11px 4px;font-size:11px;font-weight:500;color:var(--txt-muted);text-align:center;border-bottom:2px solid transparent;transition:color var(--trans),border-color var(--trans);display:flex;flex-direction:column;align-items:center;gap:3px;}
+    .nav-tab svg{width:18px;height:18px;}
+    .nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+    .nav-tab:hover:not(.active){color:var(--txt);}
+
+    /* Screens */
+    .main{flex:1;}
+    .screen{display:none;padding:18px 16px 80px;}
+    .screen.active{display:block;}
+    .section-title{font-size:20px;font-weight:600;margin-bottom:4px;letter-spacing:-.3px;}
+    .section-sub{font-size:13px;color:var(--txt-muted);margin-bottom:20px;}
+
+    /* Buttons */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 20px;border-radius:var(--radius);font-size:15px;font-weight:600;transition:all var(--trans);width:100%;}
+    .btn svg{width:18px;height:18px;flex-shrink:0;}
+    .btn:disabled{opacity:.55;cursor:not-allowed;transform:none!important;}
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-primary:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.3);}
+    .btn-primary:active:not(:disabled){transform:translateY(0);filter:brightness(.95);}
+    .btn-secondary{background:var(--surface);color:var(--txt);border:1px solid var(--border);}
+    .btn-secondary:hover:not(:disabled){background:var(--surface2);}
+    .btn-danger{background:var(--error);color:#fff;}
+    .btn-success{background:var(--success);color:#fff;}
+    .btn-sm{padding:7px 11px;font-size:12px;font-weight:500;width:auto;border-radius:7px;}
+
+    /* Beranda */
+    .home-hero{text-align:center;padding:24px 0 18px;}
+    .home-hero .icon-wrap{width:64px;height:64px;background:var(--accent-bg);border-radius:18px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;}
+    .home-hero .icon-wrap svg{width:32px;height:32px;color:var(--accent);}
+    .home-hero h1{font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:5px;}
+    .home-hero p{font-size:13px;color:var(--txt-muted);}
+    .action-stack{display:flex;flex-direction:column;gap:10px;margin-top:20px;}
+    .quick-info{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
+    .info-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;}
+    .info-tile .label{font-size:11px;font-weight:500;color:var(--txt-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+    .info-tile .value{font-size:13px;font-weight:600;font-family:'JetBrains Mono',monospace;}
+    .info-tile .value.success{color:var(--success);}
+    .info-tile .value.muted{color:var(--txt-muted);}
+
+    /* Printer Card */
+    .printer-list{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+    .printer-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:13px 14px;display:flex;align-items:center;gap:12px;transition:border-color var(--trans);}
+    .printer-card.is-default{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+    .printer-icon{width:40px;height:40px;background:var(--surface2);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .printer-icon svg{width:20px;height:20px;color:var(--txt-muted);}
+    .printer-info{flex:1;min-width:0;}
+    .printer-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .printer-meta{font-size:11px;color:var(--txt-muted);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+    .printer-actions{display:flex;align-items:center;gap:6px;}
+
+    /* Empty */
+    .empty-state{text-align:center;padding:32px 20px;color:var(--txt-muted);}
+    .empty-state svg{width:36px;height:36px;margin:0 auto 10px;opacity:.35;display:block;}
+    .empty-state p{font-size:13px;line-height:1.5;}
+
+    /* Upload */
+    .upload-zone{border:2px dashed var(--border);border-radius:var(--radius-lg);padding:36px 20px;text-align:center;cursor:pointer;transition:border-color var(--trans),background var(--trans);}
+    .upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:var(--accent-bg);}
+    .upload-zone svg{width:32px;height:32px;color:var(--txt-muted);margin:0 auto 10px;display:block;}
+    .upload-zone .u-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+    .upload-zone .u-sub{font-size:12px;color:var(--txt-muted);}
+    .upload-zone input{display:none;}
+
+    /* PDF info */
+    .pdf-info{display:none;background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--radius);padding:10px 13px;margin-top:10px;align-items:center;gap:10px;}
+    .pdf-info.visible{display:flex;}
+    .pdf-info svg{width:18px;height:18px;color:var(--accent);flex-shrink:0;}
+    .pdf-info-text{flex:1;min-width:0;}
+    .pdf-info-text .name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pdf-info-text .meta{font-size:11px;color:var(--txt-muted);font-family:'JetBrains Mono',monospace;}
+    .pdf-clear{margin-left:auto;color:var(--txt-muted);flex-shrink:0;padding:4px;border-radius:5px;}
+    .pdf-clear:hover{background:var(--surface2);color:var(--error);}
+    .pdf-clear svg{width:14px;height:14px;}
+
+    /* Thumbnails */
+    .thumb-section{margin-top:16px;display:none;}
+    .thumb-section.visible{display:block;}
+    .thumb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .thumb-header h3{font-size:13px;font-weight:600;}
+    .select-all-btn{font-size:12px;font-weight:500;color:var(--accent);cursor:pointer;padding:4px 8px;border-radius:6px;}
+    .select-all-btn:hover{background:var(--accent-bg);}
+    .thumb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+    .thumb-item{aspect-ratio:1/1.41;background:var(--surface2);border-radius:6px;border:2px solid transparent;cursor:pointer;position:relative;overflow:hidden;transition:border-color var(--trans);}
+    .thumb-item.selected{border-color:var(--accent);}
+    .thumb-item canvas{width:100%;height:100%;object-fit:cover;display:block;}
+    .thumb-item .page-num{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:10px;font-weight:500;font-family:'JetBrains Mono',monospace;color:var(--txt-muted);background:rgba(0,0,0,.05);padding:1px;}
+    .thumb-item .check{display:none;position:absolute;top:4px;right:4px;width:16px;height:16px;background:var(--accent);border-radius:50%;align-items:center;justify-content:center;}
+    .thumb-item.selected .check{display:flex;}
+    .thumb-item .check svg{width:10px;height:10px;color:#fff;}
+
+    /* Chips */
+    .chips-section{margin-top:16px;display:none;}
+    .chips-section.visible{display:block;}
+    .chips-label{font-size:11px;font-weight:500;color:var(--txt-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+    .chips-scroll{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
+    .chips-scroll::-webkit-scrollbar{display:none;}
+    .chip{flex-shrink:0;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--txt);cursor:pointer;transition:all var(--trans);white-space:nowrap;}
+    .chip.selected{background:var(--accent);border-color:var(--accent);color:#fff;}
+    .chip:hover:not(.selected){border-color:var(--accent);color:var(--accent);}
+
+    /* Progress */
+    .progress-wrap{text-align:center;padding:24px 0 16px;}
+    .progress-icon{width:72px;height:72px;background:var(--accent-bg);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;position:relative;}
+    .progress-icon svg{width:30px;height:30px;color:var(--accent);}
+    .progress-icon::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--accent);border-top-color:transparent;animation:spin 1s linear infinite;opacity:0;}
+    .progress-icon.printing::after{opacity:1;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .progress-title{font-size:18px;font-weight:600;margin-bottom:5px;}
+    .progress-sub{font-size:13px;color:var(--txt-muted);margin-bottom:20px;font-family:'JetBrains Mono',monospace;min-height:18px;}
+    .progress-bar-wrap{background:var(--surface2);border-radius:10px;height:9px;overflow:hidden;margin-bottom:8px;}
+    .progress-bar-fill{height:100%;background:var(--accent);border-radius:10px;transition:width 300ms ease;}
+    .progress-pct{font-size:12px;color:var(--txt-muted);font-family:'JetBrains Mono',monospace;text-align:right;margin-bottom:18px;}
+    .progress-controls{display:flex;gap:10px;}
+    .progress-controls .btn{flex:1;}
+
+    /* Result */
+    .result-card{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;text-align:center;margin-top:16px;}
+    .result-card.visible{display:block;}
+    .result-icon{font-size:36px;margin-bottom:8px;}
+    .result-title{font-size:16px;font-weight:600;margin-bottom:4px;}
+    .result-detail{font-size:12px;color:var(--txt-muted);font-family:'JetBrains Mono',monospace;}
+    .result-actions{margin-top:14px;display:flex;gap:8px;}
+
+    /* History */
+    .history-list{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+    .history-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px;display:flex;align-items:center;gap:10px;}
+    .history-icon{font-size:18px;flex-shrink:0;}
+    .history-info{flex:1;min-width:0;}
+    .history-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .history-meta{font-size:11px;color:var(--txt-muted);font-family:'JetBrains Mono',monospace;margin-top:1px;}
+    .history-badge{font-size:10px;font-weight:600;padding:3px 7px;border-radius:10px;flex-shrink:0;}
+    .badge-done{background:rgba(16,185,129,.12);color:var(--success);}
+    .badge-failed{background:rgba(239,68,68,.12);color:var(--error);}
+    .badge-printing{background:rgba(37,99,235,.12);color:var(--accent);}
+
+    /* Settings */
+    .settings-group{margin-bottom:20px;}
+    .settings-group-title{font-size:11px;font-weight:600;color:var(--txt-muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;}
+    .settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+    .settings-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;transition:background var(--trans);cursor:pointer;}
+    .settings-row+.settings-row{border-top:1px solid var(--border);}
+    .settings-row:hover{background:var(--surface2);}
+    .settings-row-label{font-size:14px;font-weight:500;}
+    .settings-row-value{font-size:13px;color:var(--txt-muted);display:flex;align-items:center;gap:6px;}
+    .settings-row-value svg{width:14px;height:14px;}
+    .toggle{width:42px;height:24px;background:var(--surface2);border-radius:12px;position:relative;cursor:pointer;transition:background var(--trans);flex-shrink:0;}
+    .toggle.on{background:var(--accent);}
+    .toggle::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform var(--trans);box-shadow:0 1px 3px rgba(0,0,0,.3);}
+    .toggle.on::after{transform:translateX(18px);}
+    .num-input{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--txt);width:72px;text-align:right;}
+    .num-input:focus{outline:2px solid var(--accent);border-color:transparent;}
+    .text-input{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--txt);width:100%;margin-bottom:8px;}
+    .text-input:focus{outline:2px solid var(--accent);border-color:transparent;}
+
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:flex-end;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--bg);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:20px 16px 32px;width:100%;max-width:480px;box-shadow:var(--shadow-md);animation:slideUp 250ms ease;}
+    @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+    .modal-title{font-size:16px;font-weight:600;margin-bottom:14px;}
+    .modal-footer{display:flex;gap:10px;margin-top:14px;}
+    .modal-footer .btn{flex:1;}
+
+    /* Spinner */
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+    .spinner.dark{border-color:rgba(0,0,0,.15);border-top-color:var(--accent);}
+
+    /* Toast */
+    .toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;}
+    .toast{background:var(--txt);color:var(--bg);padding:10px 18px;border-radius:24px;font-size:13px;font-weight:500;box-shadow:var(--shadow-md);opacity:0;transform:translateY(8px);transition:all 250ms ease;pointer-events:auto;white-space:nowrap;max-width:calc(100vw - 32px);}
+    .toast.show{opacity:1;transform:translateY(0);}
+    .toast.success{background:var(--success);color:#fff;}
+    .toast.error{background:var(--error);color:#fff;}
+    .toast.warn{background:var(--warning);color:#fff;}
+
+    /* Browser warn */
+    .browser-warn{background:var(--warning);color:#fff;font-size:13px;font-weight:500;padding:10px 16px;text-align:center;display:none;}
+    .browser-warn.visible{display:block;}
+
+    /* Scanning pulse */
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+    .scanning .status-dot{animation:pulse 1.2s ease-in-out infinite;background:var(--accent);}
+
+    /* BT not available */
+    .bt-not-avail{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-size:13px;color:var(--txt-muted);text-align:center;margin-bottom:16px;display:none;}
+    .bt-not-avail.visible{display:block;}
+
+    /* Loading overlay for print rendering */
+    .render-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+    .render-overlay.visible{display:flex;}
+    .render-overlay .msg{color:#fff;font-size:14px;font-weight:500;}
+
+    /* Page render progress for thumbnails */
+    .thumb-loading{display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--surface2);}
+    .thumb-loading::after{content:'';width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+  </style>
+</head>
+<body>
+
+<!-- Render loading overlay -->
+<div class="render-overlay" id="renderOverlay">
+  <div class="spinner" style="width:32px;height:32px;border-width:3px;border-color:rgba(255,255,255,.3);border-top-color:#fff;"></div>
+  <div class="msg" id="renderMsg">Memproses PDF...</div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- Add Printer Modal -->
+<div class="modal-overlay" id="addPrinterModal">
+  <div class="modal">
+    <div class="modal-title">Tambah Printer Manual</div>
+    <label class="modal-label">Nama Label</label>
+    <input type="text" class="text-input" id="mp-name" placeholder="cth: Printer Gudang" />
+    <label class="modal-label">Nama Perangkat Bluetooth</label>
+    <input type="text" class="text-input" id="mp-devName" placeholder="cth: XP-420B" />
+    <label class="modal-label">Lebar Kertas (mm)</label>
+    <input type="number" class="text-input" id="mp-width" value="80" />
+    <label class="modal-label">Koneksi</label>
+    <select class="text-input" id="mp-conn">
+      <option value="bluetooth">Bluetooth</option>
+      <option value="usb">USB</option>
+      <option value="serial">Serial</option>
+    </select>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addPrinterModal')">Batal</button>
+      <button class="btn btn-primary" id="mpSaveBtn" onclick="savePrinterManual()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Custom Paper Modal -->
+<div class="modal-overlay" id="addPaperModal">
+  <div class="modal">
+    <div class="modal-title">Ukuran Kertas Custom</div>
+    <label class="modal-label">Nama</label>
+    <input type="text" class="text-input" id="cp-name" placeholder="cth: Label Khusus" />
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label class="modal-label">Lebar (mm)</label><input type="number" class="text-input" id="cp-width" /></div>
+      <div><label class="modal-label">Tinggi (0=roll)</label><input type="number" class="text-input" id="cp-height" value="0" /></div>
+    </div>
+    <label class="modal-label">Gap antar label (mm)</label>
+    <input type="number" class="text-input" id="cp-gap" value="0" />
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('addPaperModal')">Batal</button>
+      <button class="btn btn-primary" id="cpSaveBtn" onclick="saveCustomPaper()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<style>.modal-label{display:block;font-size:12px;font-weight:500;color:var(--txt-muted);margin-bottom:4px;}</style>
+
+<div class="app">
+  <div class="browser-warn" id="browserWarn">⚠️ Safari iOS tidak mendukung Web Bluetooth. Gunakan <strong>Chrome Android</strong>.</div>
+
+  <!-- Status Bar -->
+  <div class="status-bar" id="statusBar">
+    <div class="printer-status" id="printerStatus">
+      <span class="status-dot" id="statusDot"></span>
+      <span class="status-label" id="statusLabel">○ Belum ada printer</span>
+    </div>
+    <div class="status-bar-right">
+      <span id="apiDot" style="font-size:10px;color:var(--txt-muted);font-family:monospace" title="API">API●</span>
+      <button class="btn-icon" id="themeToggle">
+        <svg id="iconSun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg id="iconMoon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-screen="home" id="tab-home">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Beranda
+    </button>
+    <button class="nav-tab" data-screen="connect" id="tab-connect">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01M4.929 11.929a10 10 0 0114.142 0M2 8.82a15 15 0 0120 0"/></svg>Printer
+    </button>
+    <button class="nav-tab" data-screen="print" id="tab-print">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Cetak
+    </button>
+    <button class="nav-tab" data-screen="progress" id="tab-progress">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
+    </button>
+    <button class="nav-tab" data-screen="settings" id="tab-settings">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Pengaturan
+    </button>
+  </nav>
+
+  <main class="main">
+
+    <!-- ─── BERANDA ─── -->
+    <section class="screen active" id="screen-home">
+      <div class="home-hero">
+        <div class="icon-wrap">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </div>
+        <h1>ThermalPrint Studio</h1>
+        <p>Sambung · Upload · Cetak. Selesai.</p>
+      </div>
+      <div class="action-stack">
+        <button class="btn btn-primary" onclick="goToScreen('print')">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Cetak PDF
+        </button>
+        <button class="btn btn-secondary" onclick="goToScreen('connect')">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01M4.929 11.929a10 10 0 0114.142 0M2 8.82a15 15 0 0120 0"/></svg>Sambung Printer
+        </button>
+      </div>
+      <div class="quick-info">
+        <div class="info-tile"><div class="label">Printer</div><div class="value muted" id="homePrinterName" style="font-size:12px">Belum ada</div></div>
+        <div class="info-tile"><div class="label">Status</div><div class="value muted" id="homeStatusValue">Terputus</div></div>
+        <div class="info-tile"><div class="label">Kertas</div><div class="value muted" id="homePaperSize" style="font-size:11px">—</div></div>
+        <div class="info-tile"><div class="label">Halaman</div><div class="value muted" id="homePageCount">—</div></div>
+      </div>
+    </section>
+
+    <!-- ─── PRINTER ─── -->
+    <section class="screen" id="screen-connect">
+      <h2 class="section-title">Sambung Printer</h2>
+      <p class="section-sub">Konek via Bluetooth atau tambah manual.</p>
+
+      <div class="bt-not-avail" id="btNotAvail">
+        ⚠️ Web Bluetooth tidak tersedia di browser ini.<br>
+        Gunakan <strong>Chrome</strong> di Android atau Desktop.
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <button class="btn btn-primary" style="flex:1" id="btnScan" onclick="scanBluetooth()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 6V2h4M1 18v4h4M23 6V2h-4M23 18v4h-4M8 12h8M12 8v8"/></svg>Scan Bluetooth
+        </button>
+        <button class="btn btn-secondary" style="flex:none;width:auto;padding:13px 14px" onclick="openModal('addPrinterModal')" title="Tambah manual">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+
+      <p class="settings-group-title">Printer Tersimpan</p>
+      <div class="printer-list" id="savedPrinterList">
+        <div class="empty-state"><div class="spinner dark"></div><p style="margin-top:10px">Memuat...</p></div>
+      </div>
+
+      <div id="foundSection" style="margin-top:20px;display:none">
+        <p class="settings-group-title">Perangkat Ditemukan</p>
+        <div class="printer-list" id="foundList"></div>
+      </div>
+    </section>
+
+    <!-- ─── CETAK ─── -->
+    <section class="screen" id="screen-print">
+      <h2 class="section-title">Cetak PDF</h2>
+      <p class="section-sub">Pilih file, pilih halaman, cetak.</p>
+
+      <div class="upload-zone" id="uploadZone"
+           onclick="document.getElementById('filePicker').click()"
+           ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div class="u-title">Tap untuk pilih PDF</div>
+        <div class="u-sub">atau drag & drop · maks 50 MB</div>
+        <input type="file" id="filePicker" accept=".pdf" onchange="handleFileSelect(event)" />
+      </div>
+
+      <div class="pdf-info" id="pdfInfo">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="pdf-info-text"><div class="name" id="pdfName">—</div><div class="meta" id="pdfMeta">—</div></div>
+        <button class="pdf-clear" onclick="clearPdf()"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+
+      <div class="thumb-section" id="thumbSection">
+        <div class="thumb-header">
+          <h3 id="thumbTitle">—</h3>
+          <span class="select-all-btn" id="selectAllBtn" onclick="toggleSelectAll()">Pilih Semua</span>
+        </div>
+        <div class="thumb-grid" id="thumbGrid"></div>
+      </div>
+
+      <div class="chips-section" id="chipsSection">
+        <div class="chips-label">Ukuran Kertas</div>
+        <div class="chips-scroll" id="chipsScroll"><span class="spinner dark"></span></div>
+      </div>
+
+      <div id="printBtnSection" style="display:none;margin-top:16px">
+        <button class="btn btn-primary" id="btnCetak" onclick="startPrint()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          <span id="printBtnLabel">Cetak Semua Halaman</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ─── PROGRESS ─── -->
+    <section class="screen" id="screen-progress">
+      <div class="progress-wrap">
+        <div class="progress-icon" id="progressIcon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </div>
+        <div class="progress-title" id="progressTitle">Siap</div>
+        <div class="progress-sub"  id="progressSub">—</div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBarFill" style="width:0%"></div></div>
+        <div class="progress-pct" id="progressPct">0%</div>
+        <div class="progress-controls">
+          <button class="btn btn-secondary" id="btnPause"  onclick="togglePause()" style="display:none">Pause</button>
+          <button class="btn btn-danger"    id="btnCancel" onclick="cancelPrint()" style="display:none">Batal</button>
+        </div>
+      </div>
+
+      <div class="result-card" id="resultCard">
+        <div class="result-icon" id="resultIcon">✅</div>
+        <div class="result-title" id="resultTitle">Selesai!</div>
+        <div class="result-detail" id="resultDetail">—</div>
+        <div class="result-actions">
+          <button class="btn btn-secondary" onclick="goToScreen('print')" style="flex:1">Cetak Lagi</button>
+          <button class="btn btn-primary"   onclick="goToScreen('home')"  style="flex:1">Beranda</button>
+        </div>
+      </div>
+
+      <div style="margin-top:22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <p class="settings-group-title" style="margin:0">Riwayat Print</p>
+          <button style="font-size:12px;color:var(--error);padding:2px 6px;border-radius:6px" onclick="clearHistory()">Hapus</button>
+        </div>
+        <div class="history-list" id="historyList"><div class="empty-state" style="padding:16px"><p>Belum ada riwayat</p></div></div>
+      </div>
+    </section>
+
+    <!-- ─── SETTINGS ─── -->
+    <section class="screen" id="screen-settings">
+      <h2 class="section-title">Pengaturan</h2>
+      <p class="section-sub">Printer, kertas, dan preferensi.</p>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Printer</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-label">Printer Default</div>
+            <div class="settings-row-value" id="settingDefaultPrinter">—<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Kertas</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-label">Ukuran Default</div>
+            <div class="settings-row-value" id="settingDefaultPaper">—<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </div>
+          <div class="settings-row" onclick="openModal('addPaperModal')">
+            <div class="settings-row-label">Tambah Ukuran Custom</div>
+            <div class="settings-row-value"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Cetak</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-label">Jeda Antar Halaman</div>
+            <div class="settings-row-value"><input type="number" class="num-input" id="printDelay" value="300" min="0" max="9999" onchange="saveSetting({printDelayMs:+this.value})"/> ms</div>
+          </div>
+          <div class="settings-row" id="rowDpi">
+            <div class="settings-row-label">DPI Printer</div>
+            <div class="settings-row-value">
+              <select class="num-input" id="dpiSelect" onchange="saveSetting({dpi:+this.value})" style="width:90px;text-align:left">
+                <option value="203" selected>203 DPI</option>
+                <option value="300">300 DPI</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Tampilan</div>
+        <div class="settings-card">
+          <div class="settings-row" onclick="toggleDarkMode()">
+            <div class="settings-row-label">Dark Mode</div>
+            <div class="settings-row-value"><div class="toggle" id="darkModeToggle"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">Info</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-label">Server</div>
+            <div class="settings-row-value" id="serverInfo" style="font-family:monospace;font-size:11px">—</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-label">Database</div>
+            <div class="settings-row-value" style="font-size:11px;font-family:monospace">SQLite · thermal.db</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-label">PDF Engine</div>
+            <div class="settings-row-value" style="font-size:11px;font-family:monospace">PDF.js 3.11.174</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-label">Print Protocol</div>
+            <div class="settings-row-value" style="font-size:11px;font-family:monospace">ESC/POS BLE</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-group" id="diagPanel" style="display:none">
+        <div class="settings-group-title">Diagnostik Bluetooth</div>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-label">Service UUID</div>
+            <div class="settings-row-value" id="diagSvc" style="font-size:10px;font-family:monospace">—</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-label">Char UUID</div>
+            <div class="settings-row-value" id="diagChar" style="font-size:10px;font-family:monospace">—</div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-label">Write Method</div>
+            <div class="settings-row-value" id="diagWor" style="font-size:10px;font-family:monospace">—</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   CONFIG & API
+══════════════════════════════════════════════════════════ */
+const DB_KEY = 'thermalprint_db';
+
+function getLocalDB() {
+  const data = localStorage.getItem(DB_KEY);
+  if (data) return JSON.parse(data);
+  return {
+    printers: [],
+    paperSizes: [
+      { id: 'p1', name: '58mm Roll', width: 58, height: 0, gap: 0, isDefault: true },
+      { id: 'p2', name: '80mm Roll', width: 80, height: 0, gap: 0, isDefault: false },
+      { id: 'p3', name: 'A6 / 100x150', width: 104, height: 150, gap: 2, isDefault: false }
+    ],
+    settings: {
+      printerType: 'ble',
+      printDensity: '8',
+      printDelay: '300',
+      autoConnect: true,
+      lastPrinterId: null
+    },
+    jobs: []
+  };
+}
+
+function saveLocalDB(db) {
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
+}
+
+// ── SERVERLESS MOCK API (LOCALSTORAGE) ──
+async function api(method, path, body) {
+  const db = getLocalDB();
+  
+  if (path === '/api/printers') {
+    if (method === 'GET') return db.printers;
+    if (method === 'POST') {
+      body.id = 'ptr_' + Date.now();
+      db.printers.push(body);
+      saveLocalDB(db);
+      return body;
+    }
+  } else if (path.startsWith('/api/printers/')) {
+    const parts = path.split('/');
+    const id = parts[3];
+    if (method === 'DELETE') {
+      db.printers = db.printers.filter(p => p.id !== id);
+      saveLocalDB(db);
+      return { success: true };
+    } else if (path.endsWith('/default') && method === 'PUT') {
+      db.settings.lastPrinterId = id;
+      saveLocalDB(db);
+      return { success: true };
+    }
+  } else if (path === '/api/paper-sizes') {
+    if (method === 'GET') return db.paperSizes;
+    if (method === 'POST') {
+      body.id = 'ps_' + Date.now();
+      db.paperSizes.push(body);
+      saveLocalDB(db);
+      return body;
+    }
+  } else if (path === '/api/settings') {
+    if (method === 'GET') return db.settings;
+    if (method === 'PUT') {
+      db.settings = { ...db.settings, ...body };
+      saveLocalDB(db);
+      return db.settings;
+    }
+  } else if (path.startsWith('/api/jobs')) {
+    if (method === 'GET') return db.jobs.slice().reverse().slice(0, 20);
+    if (method === 'POST') {
+      body.id = 'job_' + Date.now();
+      body.createdAt = new Date().toISOString();
+      body.status = 'printing';
+      db.jobs.push(body);
+      saveLocalDB(db);
+      return body;
+    }
+    if (method === 'DELETE') {
+      db.jobs = [];
+      saveLocalDB(db);
+      return { success: true };
+    }
+    if (method === 'PUT') {
+      const parts = path.split('/');
+      const id = parts[3];
+      const job = db.jobs.find(j => j.id === id);
+      if (job) { Object.assign(job, body); saveLocalDB(db); return job; }
+    }
+  } else if (path === '/api/upload') {
+    return { success: true }; // Ignore backend upload
+  }
+  
+  return { success: true };
+}
+
+/* ══════════════════════════════════════════════════════════
+   PDF.js SETUP
+══════════════════════════════════════════════════════════ */
+const PDFJS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174';
+let pdfjsLib;
+
+function initPdfJs() {
+  pdfjsLib = window['pdfjs-dist/build/pdf'];
+  if (pdfjsLib) {
+    // Load worker locally
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `./lib/pdf.worker.min.js`;
+  }
+}
+
+let pdfDoc = null;       // current loaded PDFDocumentProxy
+
+async function loadPdfFromFile(file) {
+  const ab = await file.arrayBuffer();
+  const loadingTask = pdfjsLib.getDocument({
+    data: new Uint8Array(ab),
+    cMapUrl: `${PDFJS_CDN}/cmaps/`,
+    cMapPacked: true,
+  });
+  pdfDoc = await loadingTask.promise;
+  return pdfDoc.numPages;
+}
+
+// Render a page to a new <canvas> at given scale
+async function renderPage(pageNum, scale = 1.0) {
+  const page     = await pdfDoc.getPage(pageNum);
+  const viewport = page.getViewport({ scale });
+  const canvas   = document.createElement('canvas');
+  canvas.width   = viewport.width;
+  canvas.height  = viewport.height;
+  const ctx      = canvas.getContext('2d', { willReadFrequently: true });
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  return canvas;
+}
+
+// Scale so page fills printer width in dots
+async function renderPageForPrint(pageNum, widthDots) {
+  const page            = await pdfDoc.getPage(pageNum);
+  const baseViewport    = page.getViewport({ scale: 1 });
+  const scale           = widthDots / baseViewport.width;
+  const printViewport   = page.getViewport({ scale });
+  const canvas          = document.createElement('canvas');
+  canvas.width          = Math.round(printViewport.width);
+  canvas.height         = Math.round(printViewport.height);
+  const ctx             = canvas.getContext('2d', { willReadFrequently: true });
+  // White background (some PDFs are transparent)
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, viewport: printViewport }).promise;
+  return canvas;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ESC/POS ENCODER
+══════════════════════════════════════════════════════════ */
+// Known service/characteristic UUIDs for common BLE thermal printers
+const BLE_SERVICES = [
+  'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Xprinter, HOIN, many common printers
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Microchip UART
+  '6e400001-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART (NUS)
+  '000018f0-0000-1000-8000-00805f9b34fb', // Generic SPP-like
+  '0000ff00-0000-1000-8000-00805f9b34fb', // Common custom
+  '0000ffe0-0000-1000-8000-00805f9b34fb', // HM-10 BLE module
+  '00001101-0000-1000-8000-00805f9b34fb', // SPP (Serial Port Profile)
+];
+
+// Printable width in dots for each paper width (mm), at 203 DPI (8 dots/mm)
+function getPrintWidthDots(paperWidthMm, dpi = 203) {
+  const dotsPerMm = dpi / 25.4;
+  if (paperWidthMm <= 58)  return Math.round(48 * dotsPerMm);  // 58mm paper → ~48mm printable
+  if (paperWidthMm <= 80)  return Math.round(72 * dotsPerMm);  // 80mm paper → ~72mm printable
+  return Math.round(104 * dotsPerMm);                           // 104mm paper → ~104mm printable
+}
+
+// ESC @ — initialize printer
+function escInit() { return [0x1B, 0x40]; }
+
+// ESC a n — alignment (0=left, 1=center, 2=right)
+function escAlign(n) { return [0x1B, 0x61, n]; }
+
+// GS V A 0 — full cut
+function escCut() { return [0x1D, 0x56, 0x41, 0x00]; }
+
+// LF × n — line feeds
+function escFeed(n = 3) { return Array(n).fill(0x0A); }
+
+// GS v 0 — raster bit image
+// COMPRESSION ALGORITHM: White-space skipping
+// Thermal printers print raster graphics very slowly over BLE because they receive a huge amount of zeroes (white space).
+// We optimize this by slicing the image into strips, entirely skipping blank (white) rows by feeding paper instead of sending zero-bytes.
+
+function canvasToEscPos(canvas) {
+  const { width, height } = canvas;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const imgData = ctx.getImageData(0, 0, width, height).data;
+  const bytesPerLine = Math.ceil(width / 8);
+
+  const bytes = [];
+  bytes.push(...escInit());
+  bytes.push(...escAlign(0)); // left align
+
+  // 1. Convert image to 1-bit rows and detect blank rows
+  const rowData = [];
+  for (let y = 0; y < height; y++) {
+    const row = new Uint8Array(bytesPerLine);
+    let isBlank = true;
+    for (let bx = 0; bx < bytesPerLine; bx++) {
+      let b = 0;
+      for (let bit = 0; bit < 8; bit++) {
+        const x = bx * 8 + bit;
+        if (x < width) {
+          const i = (y * width + x) * 4;
+          // Fast luma calculation (0=black, 255=white)
+          const luma = (imgData[i] * 299 + imgData[i+1] * 587 + imgData[i+2] * 114) / 1000;
+          // Threshold set to 200 (instead of 128) to capture anti-aliased grey edges as black, making text thicker and bolder
+          if (luma < 200) {
+            b |= (1 << (7 - bit));
+            isBlank = false;
+          }
+        }
+      }
+      row[bx] = b;
+    }
+    rowData.push({ data: row, isBlank });
+  }
+
+  // 2. Process rows into chunks (skip white space)
+  let y = 0;
+  while (y < height) {
+    if (rowData[y].isBlank) {
+      // Count consecutive blank rows
+      let skipCount = 0;
+      while (y < height && rowData[y].isBlank && skipCount < 255) {
+        skipCount++;
+        y++;
+      }
+      // ESC J n — Print and feed paper (n dots)
+      // This physically moves the paper without sending useless zero-bytes
+      bytes.push(0x1B, 0x4A, skipCount);
+    } else {
+      // Count consecutive black rows to form a strip (max 255 to fit in GS v 0)
+      let stripRows = [];
+      // It's more efficient to break a strip even for 1 blank line because the 
+      // GS v 0 header is 8 bytes, but 1 blank line is ~48-104 bytes of data!
+      while (y < height && stripRows.length < 255) {
+        if (rowData[y].isBlank) break; 
+        stripRows.push(rowData[y].data);
+        y++;
+      }
+
+      const stripH = stripRows.length;
+      const xL = bytesPerLine & 0xFF;
+      const xH = (bytesPerLine >> 8) & 0xFF;
+      const yL = stripH & 0xFF;
+      const yH = (stripH >> 8) & 0xFF;
+
+      // GS v 0 command
+      bytes.push(0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH);
+      for (const r of stripRows) {
+        for (let i = 0; i < bytesPerLine; i++) {
+          bytes.push(r[i]);
+        }
+      }
+    }
+  }
+
+  // -- Tail: feed + cut --
+  bytes.push(...escFeed(4));
+  bytes.push(...escCut());
+
+  return new Uint8Array(bytes);
+}
+
+// ── TSPL ENCODER (For Xprinter XP-420B and label printers) ──
+function canvasToTspl(canvas, paperWidthMm, paperHeightMm, gapMm) {
+  const { width, height } = canvas;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const imgData = ctx.getImageData(0, 0, width, height).data;
+  const bytesPerLine = Math.ceil(width / 8);
+
+  const hMm = paperHeightMm > 0 ? paperHeightMm : Math.ceil(height / (203 / 25.4));
+  // DENSITY 15 sets the print head heat to maximum (0-15) for bolder/darker prints
+  const header = `SIZE ${paperWidthMm} mm, ${hMm} mm\r\nGAP ${gapMm || 0} mm, 0 mm\r\nDENSITY 15\r\nCLS\r\n`;
+  
+  const bytes = [];
+  for(let i=0; i<header.length; i++) bytes.push(header.charCodeAt(i));
+
+  // 1. Convert to 1-bit rows
+  const rows = [];
+  for (let y = 0; y < height; y++) {
+    const row = new Uint8Array(bytesPerLine);
+    let isBlank = true;
+    for (let bx = 0; bx < bytesPerLine; bx++) {
+      let b = 0;
+      for (let bit = 0; bit < 8; bit++) {
+        const x = bx * 8 + bit;
+        if (x < width) {
+          const i = (y * width + x) * 4;
+          const luma = (imgData[i] * 299 + imgData[i+1] * 587 + imgData[i+2] * 114) / 1000;
+          // 1 for black, 0 for white. Threshold 200 captures anti-aliased grey pixels to make text thicker/bolder
+          if (luma < 200) {
+             b |= (1 << (7 - bit));
+             isBlank = false;
+          }
+        }
+      }
+      row[bx] = (~b) & 0xFF; // TSPL standard requires INVERTED bits (0 is black ink, 1 is white space)
+    }
+    rows.push({ data: row, isBlank });
+  }
+
+  // 2. Compress by grouping non-blank rows into separate BITMAP commands
+  let y = 0;
+  while (y < height) {
+    if (rows[y].isBlank) {
+      y++;
+    } else {
+      const startY = y;
+      const blockRows = [];
+      // Group until we see 3 consecutive blank rows
+      while (y < height) {
+        if (rows[y].isBlank) {
+          let lookahead = 1;
+          let allBlank = true;
+          while (y + lookahead < height && lookahead < 3) {
+            if (!rows[y + lookahead].isBlank) { allBlank = false; break; }
+            lookahead++;
+          }
+          if (allBlank) break;
+        }
+        blockRows.push(rows[y].data);
+        y++;
+      }
+      
+      const cmd = `BITMAP 0,${startY},${bytesPerLine},${blockRows.length},0,`;
+      for(let i=0; i<cmd.length; i++) bytes.push(cmd.charCodeAt(i));
+      
+      // Raw data
+      for(const r of blockRows) {
+        for(let i=0; i<bytesPerLine; i++) bytes.push(r[i]);
+      }
+      // CR LF strictly required by some TSPL parsers after raw binary data
+      bytes.push(0x0D, 0x0A);
+    }
+  }
+
+  const footer = `\r\nPRINT 1,1\r\n`;
+  for(let i=0; i<footer.length; i++) bytes.push(footer.charCodeAt(i));
+
+  return new Uint8Array(bytes);
+}
+
+/* ══════════════════════════════════════════════════════════
+   BLUETOOTH PRINTER
+══════════════════════════════════════════════════════════ */
+let btDevice         = null;
+let btCharacteristic = null;
+let btConnected      = false;
+
+// BLE default MTU is 23 bytes (3 overhead = 20 usable).
+// Some printers/phones negotiate higher MTU, but 20 is the safe universal default.
+const BLE_CHUNK = 20;
+
+async function connectBluetooth() {
+  if (!navigator.bluetooth) throw new Error('Web Bluetooth tidak tersedia di browser ini. Gunakan Chrome.');
+
+  const device = await navigator.bluetooth.requestDevice({
+    acceptAllDevices: true,
+    optionalServices: BLE_SERVICES,
+  });
+
+  toast('Menyambungkan ke ' + device.name + '...', 'normal', 2000);
+
+  const server = await device.gatt.connect();
+  const { service, characteristic } = await findPrinterCharacteristic(server);
+
+  btDevice         = device;
+  btCharacteristic = characteristic;
+  btConnected      = true;
+
+  device.addEventListener('gattserverdisconnected', () => {
+    btConnected = false;
+    btCharacteristic = null;
+    state.activePrinter = null;
+    updatePrinterUI();
+    toast('Printer terputus', 'error');
+  });
+
+  return { device, service, characteristic };
+}
+
+async function findPrinterCharacteristic(server) {
+  // Try known services first (priority order)
+  for (const svcUuid of BLE_SERVICES) {
+    try {
+      const svc   = await server.getPrimaryService(svcUuid);
+      const chars = await svc.getCharacteristics();
+      // Prefer writeWithoutResponse (faster, no ACK), fall back to write
+      const wc = chars.find(c => c.properties.writeWithoutResponse)
+              || chars.find(c => c.properties.write);
+      if (wc) {
+        console.log('[BLE] Found service:', svcUuid);
+        console.log('[BLE] Characteristic:', wc.uuid, '| writeWOR:', wc.properties.writeWithoutResponse, '| write:', wc.properties.write);
+        updateDiagnostics(svcUuid, wc.uuid, wc.properties.writeWithoutResponse);
+        return { service: svc, characteristic: wc };
+      }
+    } catch { /* not found, try next */ }
+  }
+
+  // Fallback: scan ALL services for any writable characteristic
+  let allServices = [];
+  try { allServices = await server.getPrimaryServices(); } catch { }
+  for (const svc of allServices) {
+    try {
+      const chars = await svc.getCharacteristics();
+      const wc = chars.find(c => c.properties.writeWithoutResponse)
+              || chars.find(c => c.properties.write);
+      if (wc) {
+        console.log('[BLE] Fallback service:', svc.uuid);
+        console.log('[BLE] Characteristic:', wc.uuid);
+        updateDiagnostics(svc.uuid, wc.uuid, wc.properties.writeWithoutResponse);
+        return { service: svc, characteristic: wc };
+      }
+    } catch { /* skip */ }
+  }
+
+  throw new Error(
+    'Tidak ditemukan karakteristik printer.\n' +
+    'Coba: (1) matikan printer lalu nyalakan lagi, (2) tap Scan ulang.'
+  );
+}
+
+// ── BLE Write (safe, serial, chunked at 20 bytes) ─────────────────────────
+let _bleWriteLock = false;
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('NetworkError: BLE Write Timeout')), ms))
+  ]);
+}
+
+async function writeToPrinter(data, onProgress) {
+  if (window.bluetoothSerial && nativeMacAddress && btConnected) {
+    // NATIVE SPP FAST WRITE (Instant Print)
+    if (onProgress) onProgress(0);
+    return new Promise((resolve, reject) => {
+      // Buffer needs to be converted back to normal array/buffer for plugin
+      bluetoothSerial.write(data.buffer, () => {
+        if (onProgress) onProgress(100);
+        resolve();
+      }, reject);
+    });
+  }
+
+  // WEB BLE SLOW ADAPTIVE STREAMING (Fallback)
+  if (!btCharacteristic) throw new Error('Printer tidak terhubung');
+
+  // Wait if another write is in progress
+  while (_bleWriteLock) await delay(50);
+  _bleWriteLock = true;
+
+  try {
+    const useWOR = btCharacteristic.properties.writeWithoutResponse;
+    console.log(`[BLE] Total data: ${data.length} bytes`);
+
+    // ADAPTIVE BLE STREAMING:
+    // Start fast and aggressive (200 bytes, no delay). 
+    // If the phone's GATT queue fills up, we dynamically throttle down.
+    let currentChunk = 200;
+    let currentDelay = useWOR ? 0 : 20;
+    let i = 0;
+
+    while (i < data.length) {
+      if (onProgress) onProgress(Math.round((i / data.length) * 100));
+      
+      // Ensure we don't slice past the end
+      const chunk = data.slice(i, i + currentChunk);
+      let success = false;
+
+      // Retry loop for the current chunk
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          if (useWOR) {
+            await withTimeout(btCharacteristic.writeValueWithoutResponse(chunk), 1500);
+          } else {
+            await withTimeout(btCharacteristic.writeValue(chunk), 2500);
+          }
+          
+          success = true;
+          // Slowly recover speed if it was throttled
+          if (currentDelay > 0) currentDelay = Math.max(0, currentDelay - 2);
+          break; // success
+        } catch (e) {
+          const msg = e.message || '';
+          if (msg.includes('GATT') || msg.includes('NetworkError') || msg.includes('in progress') || msg.includes('Timeout')) {
+            console.warn(`[BLE] Busy/Timeout (attempt ${attempt+1}). Slowing down...`);
+            // Adaptive backoff: decrease chunk size and increase delay
+            currentDelay += 30;
+            if (currentChunk > 20) currentChunk = Math.max(20, Math.floor(currentChunk / 2));
+            await delay(50 + currentDelay);
+          } else {
+            throw e; // hard error
+          }
+        }
+      }
+
+      if (!success) {
+        throw new Error('Koneksi Bluetooth tidak stabil / gagal setelah 5x retries. Coba restart printer.');
+      }
+
+      i += chunk.length; // advance by the amount we actually sent
+      if (currentDelay > 0) await delay(currentDelay);
+    }
+    
+    if (onProgress) onProgress(100);
+  } finally {
+    _bleWriteLock = false;
+  }
+}
+
+function updateDiagnostics(svcUuid, charUuid, wor) {
+  const el = document.getElementById('diagPanel');
+  if (!el) return;
+  document.getElementById('diagSvc').textContent  = svcUuid;
+  document.getElementById('diagChar').textContent = charUuid;
+  document.getElementById('diagWor').textContent  = wor ? 'writeWithoutResponse' : 'writeValue';
+  el.style.display = 'block';
+}
+
+async function testPrintReal() {
+  if (!btCharacteristic) {
+    toast('Printer belum terhubung. Tap Konek dulu.', 'error');
+    return;
+  }
+  const btn = event?.target;
+  if (btn) { btn.disabled = true; btn.textContent = 'Mengirim...'; }
+  try {
+    // Simple text test — minimal data, maximum compatibility
+    const bytes = [
+      ...escInit(),
+      0x0A,
+      ...escAlign(1),
+      0x1B, 0x21, 0x08,  // bold + double height
+      ...stringToBytes('ThermalPrint Studio'), 0x0A,
+      0x1B, 0x21, 0x00,
+      ...stringToBytes('Test OK - ' + new Date().toLocaleTimeString('id-ID')), 0x0A,
+      ...escFeed(4),
+      ...escCut(),
+    ];
+    await writeToPrinter(new Uint8Array(bytes));
+    toast('Test print terkirim ✓ — cek kertas keluar', 'success', 3500);
+  } catch (e) {
+    console.error('[TEST PRINT]', e);
+    toast('Error: ' + e.message, 'error', 5000);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Test Print'; }
+  }
+}
+
+function stringToBytes(str) {
+  return [...str].map(c => c.charCodeAt(0) & 0xFF);
+}
+
+/* ══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════ */
+const state = {
+  theme:           'light',
+  printers:        [],
+  activePrinter:   null,
+  paperSizes:      [],
+  selectedPaperId: 'a6resi',
+  settings:        { printDelayMs: 300 },
+  pdfFile:         null,
+  totalPages:      0,
+  selectedPages:   new Set(),
+  allSelected:     false,
+  // print state
+  printTotal:      0,
+  printCurrent:    0,
+  printFailed:     0,
+  printPaused:     false,
+  printCancelled:  false,
+  currentJobId:    null,
+};
+
+/* ══════════════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════════════ */
+function goToScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'progress') loadHistory();
+}
+document.querySelectorAll('.nav-tab').forEach(t => {
+  t.addEventListener('click', () => goToScreen(t.dataset.screen));
+});
+
+/* ══════════════════════════════════════════════════════════
+   THEME
+══════════════════════════════════════════════════════════ */
+function applyTheme(t) {
+  state.theme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('darkModeToggle').classList.toggle('on', t === 'dark');
+  document.getElementById('iconSun').style.display  = t === 'dark' ? 'none' : '';
+  document.getElementById('iconMoon').style.display = t === 'dark' ? '' : 'none';
+}
+function toggleDarkMode() {
+  const next = state.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  saveSetting({ theme: next });
+}
+document.getElementById('themeToggle').addEventListener('click', toggleDarkMode);
+
+/* ══════════════════════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════════════════════ */
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+/* ══════════════════════════════════════════════════════════
+   PRINTER STATUS UI
+══════════════════════════════════════════════════════════ */
+function updatePrinterUI() {
+  const p     = state.activePrinter;
+  const dot   = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
+  const homeP = document.getElementById('homePrinterName');
+  const homeS = document.getElementById('homeStatusValue');
+
+  if (p && btConnected) {
+    dot.className   = 'status-dot connected';
+    label.className = 'status-label connected';
+    label.textContent = '● ' + (p.deviceName || p.name) + ' · Terhubung';
+    homeP.textContent = p.name; homeP.className = 'value success';
+    homeS.textContent = 'Terhubung'; homeS.className = 'value success';
+  } else {
+    dot.className   = 'status-dot';
+    label.className = 'status-label';
+    label.textContent = p ? '○ ' + p.name + ' · Terputus' : '○ Belum ada printer';
+    homeP.textContent = p ? p.name : 'Belum ada'; homeP.className = 'value muted';
+    homeS.textContent = 'Terputus'; homeS.className = 'value muted';
+  }
+  updateSettingsUI();
+}
+
+/* ══════════════════════════════════════════════════════════
+   LOAD PRINTERS FROM API
+══════════════════════════════════════════════════════════ */
+async function loadPrinters() {
+  const list = document.getElementById('savedPrinterList');
+  try {
+    state.printers = await api('GET', '/api/printers');
+    state.activePrinter = state.printers.find(p => p.isDefault) || state.printers[0] || null;
+    updatePrinterUI();
+    renderPrinterList();
+  } catch {
+    list.innerHTML = `<div class="empty-state"><p style="color:var(--error)">Gagal memuat. Cek koneksi ke backend.</p></div>`;
+  }
+}
+
+function renderPrinterList() {
+  const list = document.getElementById('savedPrinterList');
+  if (!state.printers.length) {
+    list.innerHTML = `<div class="empty-state">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      <p>Belum ada printer.<br>Tap <strong>Scan Bluetooth</strong> untuk menemukan printer.</p></div>`;
+    return;
+  }
+  list.innerHTML = state.printers.map(p => `
+    <div class="printer-card ${p.isDefault ? 'is-default' : ''}">
+      <div class="printer-icon"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>
+      <div class="printer-info">
+        <div class="printer-name">${p.name}</div>
+        <div class="printer-meta">${p.deviceName} · ${p.paperWidth}mm · ${p.connectionType}</div>
+      </div>
+      <div class="printer-actions">
+        <span class="status-dot ${p.isDefault && btConnected ? 'connected' : ''}"></span>
+        ${p.isDefault
+          ? `<button class="btn btn-secondary btn-sm" onclick="reconnectPrinter()">Konek</button>
+             <button class="btn btn-secondary btn-sm" onclick="testPrintReal()">Test</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="setDefaultAndConnect('${p.id}')">Sambung</button>`}
+        <button class="btn btn-secondary btn-sm" onclick="deletePrinter('${p.id}')" style="padding:7px 8px" title="Hapus">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function setDefaultAndConnect(id) {
+  await api('PUT', `/api/printers/${id}/default`);
+  await loadPrinters();
+  await reconnectPrinter();
+}
+
+async function deletePrinter(id) {
+  if (!confirm('Hapus printer ini?')) return;
+  await api('DELETE', `/api/printers/${id}`);
+  toast('Printer dihapus');
+  await loadPrinters();
+}
+
+/* ══════════════════════════════════════════════════════════
+   BLUETOOTH SCAN & CONNECT (DUAL MODE)
+══════════════════════════════════════════════════════════ */
+let nativeMacAddress = null;
+
+async function scanBluetooth() {
+  const btn = document.getElementById('btnScan');
+  const bar = document.getElementById('statusBar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Memilih printer...';
+
+  try {
+    if (window.bluetoothSerial) {
+      // NATIVE CAPACITOR MODE (Bluetooth Classic SPP)
+      await new Promise((resolve, reject) => {
+        bluetoothSerial.list(devices => {
+          if (!devices.length) return reject(new Error('Tidak ada perangkat Bluetooth paired. Silakan pairing printer di Pengaturan HP Anda terlebih dahulu.'));
+          
+          const listHtml = devices.map(d => `<button onclick="window._nativeConnect('${d.address}', '${d.name}')" style="margin-bottom:8px;width:100%;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text)"><strong>${d.name}</strong><br><small style="color:var(--text-muted)">${d.address}</small></button>`).join('');
+          
+          const overlay = document.createElement('div');
+          overlay.id = 'nativeDeviceSelector';
+          overlay.style = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+          overlay.innerHTML = `<div style="background:var(--bg);padding:20px;border-radius:12px;width:100%;max-width:400px;max-height:80vh;overflow-y:auto">
+            <h3 style="margin-top:0;margin-bottom:16px">Pilih Printer</h3>
+            ${listHtml}
+            <button onclick="document.getElementById('nativeDeviceSelector').remove(); window._nativeReject()" class="btn btn-secondary" style="width:100%;margin-top:10px">Batal</button>
+          </div>`;
+          document.body.appendChild(overlay);
+          
+          window._nativeReject = () => reject(new Error('Dibatalkan'));
+          window._nativeConnect = async (mac, name) => {
+            document.getElementById('nativeDeviceSelector').remove();
+            btn.innerHTML = '<span class="spinner"></span> Menyambungkan...';
+            
+            bluetoothSerial.connect(mac, async () => {
+              btConnected = true;
+              nativeMacAddress = mac;
+              
+              let paperWidth = 80;
+              if (/420|4601|104/.test(name)) paperWidth = 104;
+              else if (/58|c58|rpp/i.test(name)) paperWidth = 58;
+
+              const saved = await api('POST', '/api/printers', {
+                name: name,
+                deviceName: mac,
+                paperWidth,
+                connectionType: 'native-spp',
+                isDefault: true,
+              });
+
+              state.activePrinter = saved;
+              updatePrinterUI();
+              await loadPrinters();
+              toast('Terhubung ke ' + name + ' ✓', 'success');
+              resolve();
+            }, (err) => reject(new Error('Gagal menyambung: ' + err)));
+          };
+        }, reject);
+      });
+    } else {
+      // WEB BLUETOOTH MODE (Fallback)
+      if (!navigator.bluetooth) throw new Error('Web Bluetooth tidak tersedia di browser ini.');
+      const { device } = await connectBluetooth();
+      const name = device.name || 'Printer';
+      let paperWidth = 80;
+      if (/420|4601|104/.test(name)) paperWidth = 104;
+      else if (/58|c58|rpp/i.test(name)) paperWidth = 58;
+
+      const saved = await api('POST', '/api/printers', {
+        name: name,
+        deviceName: device.name || name,
+        paperWidth,
+        connectionType: 'web-ble',
+        isDefault: true,
+      });
+
+      state.activePrinter = saved;
+      updatePrinterUI();
+      await loadPrinters();
+      toast('Terhubung ke ' + name + ' ✓', 'success');
+    }
+    document.getElementById('foundSection').style.display = 'none';
+  } catch (e) {
+    if (e.message !== 'Dibatalkan' && e.name !== 'NotFoundError') toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M1 6V2h4M1 18v4h4M23 6V2h-4M23 18v4h-4M8 12h8M12 8v8"/></svg>Scan Bluetooth`;
+    bar.classList.remove('scanning');
+  }
+}
+
+async function reconnectPrinter() {
+  const p = state.activePrinter;
+  if (!p) return;
+  
+  if (p.connectionType === 'native-spp' && window.bluetoothSerial) {
+    bluetoothSerial.connect(p.deviceName, () => {
+      btConnected = true;
+      nativeMacAddress = p.deviceName;
+      toast('Terhubung ke ' + p.name + ' ✓', 'success');
+      updatePrinterUI();
+    }, (err) => toast('Gagal konek: ' + err, 'error'));
+  } else {
+    // Web BLE
+    if (!navigator.bluetooth) { toast('Web Bluetooth tidak tersedia', 'error'); return; }
+    try {
+      const { device } = await connectBluetooth();
+      toast('Terhubung ke ' + device.name + ' ✓', 'success');
+      renderPrinterList();
+      updatePrinterUI();
+    } catch (e) {
+      if (e.name !== 'NotFoundError') toast(e.message, 'error');
+    }
+  }
+}
+
+async function savePrinterManual() {
+  const name    = document.getElementById('mp-name').value.trim();
+  const devName = document.getElementById('mp-devName').value.trim();
+  const width   = parseInt(document.getElementById('mp-width').value) || 80;
+  const conn    = document.getElementById('mp-conn').value;
+  if (!name || !devName) { toast('Nama wajib diisi', 'error'); return; }
+  const btn = document.getElementById('mpSaveBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    await api('POST', '/api/printers', { name, deviceName: devName, paperWidth: width, connectionType: conn });
+    closeModal('addPrinterModal');
+    ['mp-name','mp-devName'].forEach(id => document.getElementById(id).value = '');
+    toast('Printer disimpan ✓', 'success');
+    await loadPrinters();
+  } catch (e) { toast(e.message, 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = 'Simpan'; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PAPER SIZES
+══════════════════════════════════════════════════════════ */
+async function loadPaperSizes() {
+  try {
+    state.paperSizes = await api('GET', '/api/paper-sizes');
+    renderChips();
+  } catch { /* silent */ }
+}
+
+function renderChips() {
+  const scroll = document.getElementById('chipsScroll');
+  scroll.innerHTML = state.paperSizes.map(p => `
+    <div class="chip ${p.id === state.selectedPaperId ? 'selected' : ''}" data-id="${p.id}" onclick="selectPaper('${p.id}','${p.name}')">
+      ${p.name}
+    </div>
+  `).join('');
+}
+
+function selectPaper(id, name) {
+  state.selectedPaperId = id;
+  renderChips();
+  document.getElementById('homePaperSize').textContent = name;
+  saveSetting({ defaultPaperSizeId: id });
+}
+
+async function saveCustomPaper() {
+  const name   = document.getElementById('cp-name').value.trim();
+  const width  = parseFloat(document.getElementById('cp-width').value);
+  const height = parseFloat(document.getElementById('cp-height').value) || 0;
+  const gap    = parseFloat(document.getElementById('cp-gap').value) || 0;
+  if (!name || !width) { toast('Nama dan lebar wajib diisi', 'error'); return; }
+  const btn = document.getElementById('cpSaveBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    await api('POST', '/api/paper-sizes', { name, width, height, gap });
+    closeModal('addPaperModal');
+    document.getElementById('cp-name').value = '';
+    toast('Ukuran disimpan ✓', 'success');
+    await loadPaperSizes();
+  } catch (e) { toast(e.message, 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = 'Simpan'; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════════════════════════ */
+async function loadSettings() {
+  try {
+    state.settings = await api('GET', '/api/settings');
+    if (state.settings.theme)          applyTheme(state.settings.theme);
+    if (state.settings.printDelayMs)   document.getElementById('printDelay').value = state.settings.printDelayMs;
+    if (state.settings.defaultPaperSizeId) state.selectedPaperId = state.settings.defaultPaperSizeId;
+    document.getElementById('serverInfo').textContent = location.origin;
+  } catch { /* backend offline */ }
+}
+
+async function saveSetting(patch) {
+  try {
+    state.settings = { ...state.settings, ...patch };
+    await api('PUT', '/api/settings', patch);
+    updateSettingsUI();
+  } catch { /* silent */ }
+}
+
+function updateSettingsUI() {
+  const p     = state.activePrinter;
+  const paper = state.paperSizes.find(x => x.id === state.selectedPaperId);
+  const chevron = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"/></svg>`;
+  document.getElementById('settingDefaultPrinter').innerHTML = (p ? p.name : '—') + chevron;
+  document.getElementById('settingDefaultPaper').innerHTML   = (paper ? paper.name : '—') + chevron;
+  const homePs = document.getElementById('homePaperSize');
+  if (paper) homePs.textContent = paper.name;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PDF UPLOAD
+══════════════════════════════════════════════════════════ */
+function handleDragOver(e)  { e.preventDefault(); document.getElementById('uploadZone').classList.add('drag-over'); }
+function handleDragLeave()  { document.getElementById('uploadZone').classList.remove('drag-over'); }
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') handlePdfFile(file);
+  else toast('Hanya file PDF yang diterima', 'error');
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) handlePdfFile(file);
+  e.target.value = '';
+}
+
+async function handlePdfFile(file) {
+  // Show loading
+  showRenderOverlay('Memuat PDF...');
+  try {
+    // Load via PDF.js
+    const numPages = await loadPdfFromFile(file);
+    state.pdfFile    = file;
+    state.totalPages = numPages;
+    state.selectedPages.clear();
+    state.allSelected = false;
+
+    // Upload metadata to backend (fire & forget)
+    const form = new FormData();
+    form.append('pdf', file);
+    api('POST', '/api/upload', form).catch(() => {});
+
+    // Show PDF info bar
+    const info = document.getElementById('pdfInfo');
+    info.classList.add('visible');
+    document.getElementById('pdfName').textContent = file.name;
+    document.getElementById('pdfMeta').textContent =
+      `${(file.size / 1024 / 1024).toFixed(2)} MB · ${numPages} halaman`;
+
+    // Render thumbnails
+    await renderThumbnails(numPages);
+
+    document.getElementById('chipsSection').classList.add('visible');
+    document.getElementById('printBtnSection').style.display = 'block';
+    document.getElementById('homePageCount').textContent = numPages + ' hal';
+    updatePrintBtn();
+    toast(`PDF dimuat: ${numPages} halaman`);
+  } catch (e) {
+    toast('Gagal memuat PDF: ' + e.message, 'error');
+  } finally {
+    hideRenderOverlay();
+  }
+}
+
+async function renderThumbnails(numPages) {
+  const grid    = document.getElementById('thumbGrid');
+  const section = document.getElementById('thumbSection');
+  grid.innerHTML = '';
+  section.classList.add('visible');
+  document.getElementById('thumbTitle').textContent = numPages + ' Halaman';
+
+  for (let i = 1; i <= numPages; i++) {
+    const item = document.createElement('div');
+    item.className   = 'thumb-item';
+    item.dataset.page = i;
+    item.innerHTML   = `<div class="thumb-loading"></div><span class="page-num">${i}</span><span class="check"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>`;
+    item.addEventListener('click', () => togglePage(i, item));
+    grid.appendChild(item);
+  }
+
+  // Render thumbnails in batches of 4 to avoid blocking UI
+  const BATCH = 4;
+  const THUMB_SCALE = 0.25;
+  for (let i = 0; i < numPages; i += BATCH) {
+    await Promise.all(
+      Array.from({ length: Math.min(BATCH, numPages - i) }, async (_, j) => {
+        const pageNum = i + j + 1;
+        try {
+          const canvas = await renderPage(pageNum, THUMB_SCALE);
+          const item = grid.querySelector(`[data-page="${pageNum}"]`);
+          if (item) {
+            item.querySelector('.thumb-loading')?.remove();
+            canvas.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+            item.insertBefore(canvas, item.firstChild);
+          }
+        } catch { /* skip failed thumbnail */ }
+      })
+    );
+    await delay(10); // yield to UI
+  }
+}
+
+function clearPdf() {
+  state.pdfFile = null;
+  pdfDoc = null;
+  state.totalPages = 0;
+  state.selectedPages.clear();
+  document.getElementById('pdfInfo').classList.remove('visible');
+  document.getElementById('thumbSection').classList.remove('visible');
+  document.getElementById('chipsSection').classList.remove('visible');
+  document.getElementById('printBtnSection').style.display = 'none';
+  document.getElementById('thumbGrid').innerHTML = '';
+  document.getElementById('homePageCount').textContent = '—';
+}
+
+function togglePage(num, el) {
+  if (state.selectedPages.has(num)) { state.selectedPages.delete(num); el.classList.remove('selected'); }
+  else { state.selectedPages.add(num); el.classList.add('selected'); }
+  state.allSelected = state.selectedPages.size === state.totalPages;
+  document.getElementById('selectAllBtn').textContent = state.allSelected ? 'Batal Semua' : 'Pilih Semua';
+  updatePrintBtn();
+}
+
+function toggleSelectAll() {
+  const items = document.querySelectorAll('.thumb-item');
+  if (state.allSelected) {
+    state.selectedPages.clear(); items.forEach(i => i.classList.remove('selected'));
+    state.allSelected = false;
+    document.getElementById('selectAllBtn').textContent = 'Pilih Semua';
+  } else {
+    for (let i = 1; i <= state.totalPages; i++) state.selectedPages.add(i);
+    items.forEach(i => i.classList.add('selected'));
+    state.allSelected = true;
+    document.getElementById('selectAllBtn').textContent = 'Batal Semua';
+  }
+  updatePrintBtn();
+}
+
+function updatePrintBtn() {
+  const cnt = state.selectedPages.size;
+  document.getElementById('printBtnLabel').textContent = cnt
+    ? `Cetak ${cnt} Halaman`
+    : `Cetak Semua (${state.totalPages} Halaman)`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PRINT — REAL IMPLEMENTATION
+══════════════════════════════════════════════════════════ */
+async function startPrint() {
+  if (!btCharacteristic) {
+    // Offer to connect first
+    toast('Printer belum terhubung. Konek dulu via tab Printer.', 'error', 3000);
+    return;
+  }
+  if (!pdfDoc) { toast('Pilih file PDF terlebih dahulu', 'error'); return; }
+
+  const pages = state.selectedPages.size > 0
+    ? [...state.selectedPages].sort((a, b) => a - b)
+    : Array.from({ length: state.totalPages }, (_, i) => i + 1);
+
+  state.printTotal     = pages.length;
+  state.printCurrent   = 0;
+  state.printFailed    = 0;
+  state.printPaused    = false;
+  state.printCancelled = false;
+
+  goToScreen('progress');
+  resetProgressUI();
+
+  const dpi   = parseInt(document.getElementById('dpiSelect').value) || 203;
+  const paper = state.paperSizes.find(p => p.id === state.selectedPaperId);
+  const printerWidthMm = state.activePrinter?.paperWidth || 80;
+  const widthDots = getPrintWidthDots(printerWidthMm, dpi);
+
+  document.getElementById('progressIcon').classList.add('printing');
+  document.getElementById('progressTitle').textContent = 'Mencetak...';
+  document.getElementById('btnPause').style.display  = '';
+  document.getElementById('btnCancel').style.display = '';
+
+  // Record job in backend
+  try {
+    const job = await api('POST', '/api/jobs', {
+      printerId:     state.activePrinter?.id,
+      printerName:   state.activePrinter?.name || '?',
+      paperSizeId:   state.selectedPaperId,
+      paperSizeName: paper?.name || '—',
+      fileName:      state.pdfFile?.name || '—',
+      totalPages:    pages.length,
+    });
+    state.currentJobId = job.id;
+  } catch { state.currentJobId = null; }
+
+  const printDelay = parseInt(document.getElementById('printDelay').value) || 300;
+
+  // Print each page
+  for (let i = 0; i < pages.length; i++) {
+    if (state.printCancelled) break;
+
+    // Pause handling
+    while (state.printPaused && !state.printCancelled) {
+      await delay(200);
+    }
+    if (state.printCancelled) break;
+
+    const pageNum = pages[i];
+    document.getElementById('progressSub').textContent =
+      `Mencetak halaman ${pageNum} (${i+1}/${pages.length})...`;
+
+    let success = false;
+
+    // Try up to 2 times
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        showRenderOverlay(`Render halaman ${pageNum}...`);
+        const canvas  = await renderPageForPrint(pageNum, widthDots);
+        hideRenderOverlay();
+
+        // Check if printer is TSPL (104mm / 4inch label printers are usually TSPL)
+        const isTspl = (printerWidthMm >= 100); 
+
+        let printData;
+        if (isTspl) {
+           printData = canvasToTspl(canvas, printerWidthMm, paper?.height || 150, paper?.gap || 2);
+        } else {
+           printData = canvasToEscPos(canvas);
+        }
+
+        await writeToPrinter(printData, (pct) => {
+          document.getElementById('progressSub').textContent =
+            `Mencetak halaman ${pageNum} (${i+1}/${pages.length}) · Mengirim ${pct}%`;
+        });
+        success = true;
+        break;
+      } catch (e) {
+        hideRenderOverlay();
+        if (attempt === 0) {
+          console.warn('Retry halaman', pageNum, e.message);
+          await delay(500);
+        }
+      }
+    }
+
+    if (!success) state.printFailed++;
+    else state.printCurrent++;
+
+    // Update progress UI
+    const done = i + 1;
+    const pct  = Math.round((done / pages.length) * 100);
+    document.getElementById('progressBarFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent     = pct + '%';
+
+    if (i < pages.length - 1 && !state.printCancelled) await delay(printDelay);
+  }
+
+  hideRenderOverlay();
+  printDone(!state.printCancelled);
+}
+
+async function printDone(completed) {
+  document.getElementById('progressIcon').classList.remove('printing');
+  document.getElementById('btnPause').style.display  = 'none';
+  document.getElementById('btnCancel').style.display = 'none';
+
+  const successCount = state.printCurrent;
+  const failedCount  = state.printFailed;
+
+  const card = document.getElementById('resultCard');
+  card.classList.add('visible');
+
+  if (completed && failedCount === 0) {
+    document.getElementById('progressTitle').textContent = 'Selesai!';
+    document.getElementById('progressSub').textContent   = successCount + ' halaman dicetak';
+    document.getElementById('resultIcon').textContent  = '✅';
+    document.getElementById('resultTitle').textContent = 'Selesai!';
+    document.getElementById('resultDetail').textContent = `${successCount} berhasil · 0 gagal`;
+    toast(successCount + ' halaman dicetak ✓', 'success');
+  } else if (completed && failedCount > 0) {
+    document.getElementById('progressTitle').textContent = 'Selesai dengan error';
+    document.getElementById('resultIcon').textContent  = '⚠️';
+    document.getElementById('resultTitle').textContent = 'Selesai (ada kegagalan)';
+    document.getElementById('resultDetail').textContent = `${successCount} berhasil · ${failedCount} gagal`;
+    toast(`${failedCount} halaman gagal dicetak`, 'warn');
+  } else {
+    document.getElementById('progressTitle').textContent = 'Dibatalkan';
+    document.getElementById('resultIcon').textContent  = '❌';
+    document.getElementById('resultTitle').textContent = 'Dibatalkan';
+    document.getElementById('resultDetail').textContent = `${successCount} tercetak · ${state.printTotal - successCount} dibatalkan`;
+    toast('Print dibatalkan', 'error');
+  }
+
+  // Update job
+  if (state.currentJobId) {
+    try {
+      await api('PUT', '/api/jobs/' + state.currentJobId, {
+        status:       completed ? (failedCount === 0 ? 'done' : 'partial') : 'cancelled',
+        successPages: successCount,
+        failedPages:  failedCount,
+      });
+    } catch { /* silent */ }
+  }
+  loadHistory();
+}
+
+function togglePause() {
+  state.printPaused = !state.printPaused;
+  document.getElementById('btnPause').textContent = state.printPaused ? 'Resume' : 'Pause';
+  document.getElementById('progressIcon').classList.toggle('printing', !state.printPaused);
+  document.getElementById('progressTitle').textContent = state.printPaused ? 'Dijeda' : 'Mencetak...';
+}
+
+function cancelPrint() {
+  state.printCancelled = true;
+  state.printPaused    = false;
+}
+
+function resetProgressUI() {
+  document.getElementById('progressBarFill').style.width = '0%';
+  document.getElementById('progressPct').textContent     = '0%';
+  document.getElementById('progressSub').textContent     = state.printTotal + ' halaman antri';
+  document.getElementById('resultCard').classList.remove('visible');
+}
+
+/* ══════════════════════════════════════════════════════════
+   HISTORY
+══════════════════════════════════════════════════════════ */
+async function loadHistory() {
+  const list = document.getElementById('historyList');
+  try {
+    const jobs = await api('GET', '/api/jobs?limit=20');
+    if (!jobs.length) {
+      list.innerHTML = `<div class="empty-state" style="padding:16px"><p>Belum ada riwayat</p></div>`;
+      return;
+    }
+    list.innerHTML = jobs.map(j => `
+      <div class="history-item">
+        <div class="history-icon">${j.status==='done'?'✅':j.status==='printing'?'🖨️':j.status==='partial'?'⚠️':'❌'}</div>
+        <div class="history-info">
+          <div class="history-name">${j.fileName||'—'}</div>
+          <div class="history-meta">${j.printerName||'—'} · ${j.paperSizeName||'—'} · ${fmtDate(j.startedAt)}</div>
+        </div>
+        <div class="history-badge badge-${j.status==='done'||j.status==='partial'?'done':j.status==='printing'?'printing':'failed'}">
+          ${j.status==='done'||j.status==='partial'?j.successPages+'/'+j.totalPages:j.status}
+        </div>
+      </div>
+    `).join('');
+  } catch {
+    list.innerHTML = `<div class="empty-state" style="padding:16px"><p style="color:var(--error)">Gagal memuat riwayat</p></div>`;
+  }
+}
+
+async function clearHistory() {
+  if (!confirm('Hapus semua riwayat?')) return;
+  try { await api('DELETE', '/api/jobs'); loadHistory(); toast('Riwayat dihapus'); }
+  catch (e) { toast(e.message, 'error'); }
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'short'}) + ' ' +
+         d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER OVERLAY
+══════════════════════════════════════════════════════════ */
+function showRenderOverlay(msg) {
+  document.getElementById('renderMsg').textContent = msg;
+  document.getElementById('renderOverlay').classList.add('visible');
+}
+function hideRenderOverlay() {
+  document.getElementById('renderOverlay').classList.remove('visible');
+}
+
+/* ══════════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════════ */
+function toast(msg, type = 'normal', ms = 2500) {
+  const wrap = document.getElementById('toastWrap');
+  const el   = document.createElement('div');
+  el.className = 'toast' + (type !== 'normal' ? ' ' + type : '');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, ms);
+}
+
+/* ══════════════════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════════════════ */
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+/* ══════════════════════════════════════════════════════════
+   PWA SERVICE WORKER REGISTRATION
+══════════════════════════════════════════════════════════ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('PWA Service Worker registered:', reg.scope);
+    }).catch(err => {
+      console.warn('PWA Service Worker registration failed:', err);
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   BROWSER CHECK
+══════════════════════════════════════════════════════════ */
+const isSafariIOS = /iP(ad|hone|od)/i.test(navigator.userAgent) && /WebKit/i.test(navigator.userAgent);
+if (isSafariIOS) document.getElementById('browserWarn').classList.add('visible');
+if (!navigator.bluetooth) document.getElementById('btNotAvail').classList.add('visible');
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+async function init() {
+  initPdfJs();
+  document.getElementById('apiDot').style.color = 'var(--success)'; 
+  document.getElementById('serverInfo').textContent = 'PWA (Offline)';
+  await loadSettings();
+  await Promise.all([loadPrinters(), loadPaperSizes()]);
+  updateSettingsUI();
+}
+
+init();
+</script>
+</body>
+</html>
