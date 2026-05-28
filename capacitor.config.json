@@ -1,6 +1,6 @@
 {
   "appId": "com.mukdev.thermalprint",
-  "appName": "ThermalPrint Studio",
+  "appName": "Print Resi Termal",
   "webDir": "www",
   "plugins": {
     "CapacitorUpdater": {

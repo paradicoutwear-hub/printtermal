@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ThermalPrint Studio</title>
+  <title>Print Resi Termal</title>
   <meta name="description" content="Cetak PDF ke printer thermal Bluetooth langsung dari HP. Tanpa kabel, tanpa instalasi, bisa offline." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -328,17 +328,11 @@
 
   <!-- Nav -->
   <nav class="nav-tabs">
-    <button class="nav-tab active" data-screen="home" id="tab-home">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Beranda
+    <button class="nav-tab active" data-screen="print" id="tab-print">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Cetak
     </button>
     <button class="nav-tab" data-screen="connect" id="tab-connect">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01M4.929 11.929a10 10 0 0114.142 0M2 8.82a15 15 0 0120 0"/></svg>Printer
-    </button>
-    <button class="nav-tab" data-screen="print" id="tab-print">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Cetak
-    </button>
-    <button class="nav-tab" data-screen="progress" id="tab-progress">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
     </button>
     <button class="nav-tab" data-screen="settings" id="tab-settings">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Pengaturan
@@ -346,31 +340,6 @@
   </nav>
 
   <main class="main">
-
-    <!-- ─── BERANDA ─── -->
-    <section class="screen active" id="screen-home">
-      <div class="home-hero">
-        <div class="icon-wrap">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        </div>
-        <h1>ThermalPrint Studio</h1>
-        <p>Sambung · Upload · Cetak. Selesai.</p>
-      </div>
-      <div class="action-stack">
-        <button class="btn btn-primary" onclick="goToScreen('print')">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Cetak PDF
-        </button>
-        <button class="btn btn-secondary" onclick="goToScreen('connect')">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01M4.929 11.929a10 10 0 0114.142 0M2 8.82a15 15 0 0120 0"/></svg>Sambung Printer
-        </button>
-      </div>
-      <div class="quick-info">
-        <div class="info-tile"><div class="label">Printer</div><div class="value muted" id="homePrinterName" style="font-size:12px">Belum ada</div></div>
-        <div class="info-tile"><div class="label">Status</div><div class="value muted" id="homeStatusValue">Terputus</div></div>
-        <div class="info-tile"><div class="label">Kertas</div><div class="value muted" id="homePaperSize" style="font-size:11px">—</div></div>
-        <div class="info-tile"><div class="label">Halaman</div><div class="value muted" id="homePageCount">—</div></div>
-      </div>
-    </section>
 
     <!-- ─── PRINTER ─── -->
     <section class="screen" id="screen-connect">
@@ -403,7 +372,7 @@
     </section>
 
     <!-- ─── CETAK ─── -->
-    <section class="screen" id="screen-print">
+    <section class="screen active" id="screen-print">
       <h2 class="section-title">Cetak PDF</h2>
       <p class="section-sub">Pilih file, pilih halaman, cetak.</p>
 
@@ -465,47 +434,15 @@
         <div class="result-detail" id="resultDetail">—</div>
         <div class="result-actions">
           <button class="btn btn-secondary" onclick="goToScreen('print')" style="flex:1">Cetak Lagi</button>
-          <button class="btn btn-primary"   onclick="goToScreen('home')"  style="flex:1">Beranda</button>
+          <button class="btn btn-primary"   onclick="goToScreen('print')"  style="flex:1">Kembali</button>
         </div>
-      </div>
-
-      <div style="margin-top:22px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <p class="settings-group-title" style="margin:0">Riwayat Print</p>
-          <button style="font-size:12px;color:var(--error);padding:2px 6px;border-radius:6px" onclick="clearHistory()">Hapus</button>
-        </div>
-        <div class="history-list" id="historyList"><div class="empty-state" style="padding:16px"><p>Belum ada riwayat</p></div></div>
       </div>
     </section>
 
     <!-- ─── SETTINGS ─── -->
     <section class="screen" id="screen-settings">
       <h2 class="section-title">Pengaturan</h2>
-      <p class="section-sub">Printer, kertas, dan preferensi.</p>
-
-      <div class="settings-group">
-        <div class="settings-group-title">Printer</div>
-        <div class="settings-card">
-          <div class="settings-row">
-            <div class="settings-row-label">Printer Default</div>
-            <div class="settings-row-value" id="settingDefaultPrinter">—<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="settings-group">
-        <div class="settings-group-title">Kertas</div>
-        <div class="settings-card">
-          <div class="settings-row">
-            <div class="settings-row-label">Ukuran Default</div>
-            <div class="settings-row-value" id="settingDefaultPaper">—<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
-          </div>
-          <div class="settings-row" onclick="openModal('addPaperModal')">
-            <div class="settings-row-label">Tambah Ukuran Custom</div>
-            <div class="settings-row-value"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-          </div>
-        </div>
-      </div>
+      <p class="section-sub">Preferensi cetak dan riwayat sistem.</p>
 
       <div class="settings-group">
         <div class="settings-group-title">Cetak</div>
@@ -522,16 +459,6 @@
                 <option value="300">300 DPI</option>
               </select>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="settings-group">
-        <div class="settings-group-title">Tampilan</div>
-        <div class="settings-card">
-          <div class="settings-row" onclick="toggleDarkMode()">
-            <div class="settings-row-label">Dark Mode</div>
-            <div class="settings-row-value"><div class="toggle" id="darkModeToggle"></div></div>
           </div>
         </div>
       </div>
@@ -574,6 +501,15 @@
             <div class="settings-row-value" id="diagWor" style="font-size:10px;font-family:monospace">—</div>
           </div>
         </div>
+      </div>
+
+      <!-- Riwayat Print -->
+      <div style="margin-top:22px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <p class="settings-group-title" style="margin:0">Riwayat Print</p>
+          <button style="font-size:12px;color:var(--error);padding:2px 6px;border-radius:6px;background:none;border:1px solid var(--border)" onclick="clearHistory()">Hapus</button>
+        </div>
+        <div class="history-list" id="historyList"><div class="empty-state" style="padding:16px"><p>Belum ada riwayat</p></div></div>
       </div>
     </section>
 
@@ -1126,7 +1062,7 @@ async function testPrintReal() {
       0x0A,
       ...escAlign(1),
       0x1B, 0x21, 0x08,  // bold + double height
-      ...stringToBytes('ThermalPrint Studio'), 0x0A,
+      ...stringToBytes('Print Resi Termal'), 0x0A,
       0x1B, 0x21, 0x00,
       ...stringToBytes('Test OK - ' + new Date().toLocaleTimeString('id-ID')), 0x0A,
       ...escFeed(4),
@@ -1220,17 +1156,21 @@ function updatePrinterUI() {
   const homeS = document.getElementById('homeStatusValue');
 
   if (p && btConnected) {
-    dot.className   = 'status-dot connected';
-    label.className = 'status-label connected';
-    label.textContent = '● ' + (p.deviceName || p.name) + ' · Terhubung';
-    homeP.textContent = p.name; homeP.className = 'value success';
-    homeS.textContent = 'Terhubung'; homeS.className = 'value success';
+    if (dot) dot.className   = 'status-dot connected';
+    if (label) {
+      label.className = 'status-label connected';
+      label.textContent = '● ' + (p.deviceName || p.name) + ' · Terhubung';
+    }
+    if (homeP) { homeP.textContent = p.name; homeP.className = 'value success'; }
+    if (homeS) { homeS.textContent = 'Terhubung'; homeS.className = 'value success'; }
   } else {
-    dot.className   = 'status-dot';
-    label.className = 'status-label';
-    label.textContent = p ? '○ ' + p.name + ' · Terputus' : '○ Belum ada printer';
-    homeP.textContent = p ? p.name : 'Belum ada'; homeP.className = 'value muted';
-    homeS.textContent = 'Terputus'; homeS.className = 'value muted';
+    if (dot) dot.className   = 'status-dot';
+    if (label) {
+      label.className = 'status-label';
+      label.textContent = p ? '○ ' + p.name + ' · Terputus' : '○ Belum ada printer';
+    }
+    if (homeP) { homeP.textContent = p ? p.name : 'Belum ada'; homeP.className = 'value muted'; }
+    if (homeS) { homeS.textContent = 'Terputus'; homeS.className = 'value muted'; }
   }
   updateSettingsUI();
 }
@@ -1449,7 +1389,8 @@ function renderChips() {
 function selectPaper(id, name) {
   state.selectedPaperId = id;
   renderChips();
-  document.getElementById('homePaperSize').textContent = name;
+  const elHomePaperSize = document.getElementById('homePaperSize');
+  if (elHomePaperSize) elHomePaperSize.textContent = name;
   saveSetting({ defaultPaperSizeId: id });
 }
 
@@ -1496,10 +1437,15 @@ function updateSettingsUI() {
   const p     = state.activePrinter;
   const paper = state.paperSizes.find(x => x.id === state.selectedPaperId);
   const chevron = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"/></svg>`;
-  document.getElementById('settingDefaultPrinter').innerHTML = (p ? p.name : '—') + chevron;
-  document.getElementById('settingDefaultPaper').innerHTML   = (paper ? paper.name : '—') + chevron;
+  
+  const elPrinter = document.getElementById('settingDefaultPrinter');
+  if (elPrinter) elPrinter.innerHTML = (p ? p.name : '—') + chevron;
+  
+  const elPaper = document.getElementById('settingDefaultPaper');
+  if (elPaper) elPaper.innerHTML = (paper ? paper.name : '—') + chevron;
+  
   const homePs = document.getElementById('homePaperSize');
-  if (paper) homePs.textContent = paper.name;
+  if (homePs && paper) homePs.textContent = paper.name;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1548,7 +1494,8 @@ async function handlePdfFile(file) {
 
     document.getElementById('chipsSection').classList.add('visible');
     document.getElementById('printBtnSection').style.display = 'block';
-    document.getElementById('homePageCount').textContent = numPages + ' hal';
+    const elHomePageCount = document.getElementById('homePageCount');
+    if (elHomePageCount) elHomePageCount.textContent = numPages + ' hal';
     updatePrintBtn();
     toast(`PDF dimuat: ${numPages} halaman`);
   } catch (e) {
@@ -1606,7 +1553,8 @@ function clearPdf() {
   document.getElementById('chipsSection').classList.remove('visible');
   document.getElementById('printBtnSection').style.display = 'none';
   document.getElementById('thumbGrid').innerHTML = '';
-  document.getElementById('homePageCount').textContent = '—';
+  const elHomePageCount = document.getElementById('homePageCount');
+  if (elHomePageCount) elHomePageCount.textContent = '—';
 }
 
 function togglePage(num, el) {

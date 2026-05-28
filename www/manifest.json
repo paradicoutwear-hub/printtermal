@@ -1,7 +1,7 @@
 {
-  "name": "ThermalPrint Studio",
-  "short_name": "ThermalPrint",
-  "description": "Aplikasi cetak PDF ke printer thermal Bluetooth (Offline PWA)",
+  "name": "Print Resi Termal",
+  "short_name": "ResiTermal",
+  "description": "Aplikasi cetak PDF ke printer resi termal Bluetooth (Offline PWA)",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0d1117",
