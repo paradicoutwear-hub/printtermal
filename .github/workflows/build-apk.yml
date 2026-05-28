@@ -43,7 +43,7 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           npm version "${VERSION}-${{ github.run_number }}" --no-git-tag-version
-          npx @capgo/cli@latest bundle upload -a ${{ secrets.CAPGO_TOKEN }} -c production --path www
+          npx @capgo/cli@latest bundle upload -a ${{ secrets.CAPGO_TOKEN }} -c production --path www --no-code-check
 
       - name: Build APK
         working-directory: android

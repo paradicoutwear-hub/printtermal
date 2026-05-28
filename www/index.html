@@ -1916,6 +1916,13 @@ async function init() {
   await loadSettings();
   await Promise.all([loadPrinters(), loadPaperSizes()]);
   updateSettingsUI();
+
+  // Notify Capgo that the app is ready and the update loaded successfully
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorUpdater) {
+    window.Capacitor.Plugins.CapacitorUpdater.notifyAppReady()
+      .then(() => console.log('Capgo notifyAppReady success'))
+      .catch(err => console.error('Capgo notifyAppReady failed', err));
+  }
 }
 
 init();
