@@ -36,6 +36,15 @@ jobs:
         working-directory: android
         run: chmod +x gradlew
 
+      - name: Upload to Capgo (Live Updates)
+        env:
+          CAPGO_TOKEN: ${{ secrets.CAPGO_TOKEN }}
+        if: ${{ env.CAPGO_TOKEN != '' }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          npm version "${VERSION}-${{ github.run_number }}" --no-git-tag-version
+          npx @capgo/cli@latest bundle upload -a ${{ secrets.CAPGO_TOKEN }} -c production --path www
+
       - name: Build APK
         working-directory: android
         run: ./gradlew assembleDebug
